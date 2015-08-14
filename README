@@ -1,0 +1,263 @@
+README file for the COMSTAR rebuild scripts
+===========================================
+
+This package contains a number of scripts that may aid in the rebuilding of
+a COMSTAR configuration in the event of a catastrophic configuration failure.
+
+###
+### DISCLAIMER
+###
+### These scripts are provided as-is, with no warranty and no guarantee of
+### success.
+### They are intended as a "best efforts / heroic recovery" option when all
+### other, officially documented backup/recovery methods have been exhausted.
+###
+### As the owner/maintainer of the appliance, it is your responsibility to
+### keep known good backups of critical system configuration details.
+### If all else has failed, these scripts may be able to assist on a best
+### efforts basis, assuming a recent Collector bundle is available.
+###
+
+
+
+Index
+-----
+o) Introduction
+o) Official backup/restore
+o) Unofficial backup/restore
+  - SMF stmf manifest
+  - Collector
+o) Addendum
+
+
+
+Introduction
+------------
+There are several steps involved in configuring a COMSTAR setup, typically:
+
+o) Setting up the initiator
+o) Providing some block level storage (zvol or LUN)
+o) Mapping this to logical unit, possibly with a pretermined GUID
+o) Optionally setting up a host group and target group
+o) Managing an iSCSI view so the LU can be seen by the initiators
+
+Over a period of time, with lots of LU's and lots of views, the setup can
+become very complex.  
+Thus it is very important to have a backup of the COMSTAR configuration just
+in case something very bad happens to it.
+
+
+
+Official COMSTAR Backup/Restore
+-------------------------------
+The NexentaStor appliance has a method for backing up the COMSTAR config
+
+Backup
+~~~~~~
+nmc@hobbes:/$ setup iscsi config save 
+STMF configuration successfully saved to /var/lib/nza/comstar/backup/stmf.config
+ISCSI target configuration successfully saved to /var/lib/nza/comstar/backup/iscsi.config
+
+As you can see this creates two config files, which can be used to restore the
+configuration.
+
+
+Restore
+~~~~~~~
+nmc@hobbes:/$ setup iscsi config restore
+All Configurations including mappings, host groups, target groups, targets and initiators would be destroyed and recreated from the dump file. Do you wish to Proceed :
+
+It is also possible to restore the configuration from one machine to the other in
+a clustered setup, using the restore-to or restore-from commands:
+
+nmc@hobbes:/$ setup iscsi config <TAB>
+restore       restore-from  restore-to
+
+
+It would be sensible to copy these files to an external system, such that in
+the event of a disaster, you still have access to the COMSTAR configuration
+backups.
+Furthermore it makes sense to:
+
+o) Take copies of these (from bash) before making any significant COMSTAR change
+o) Regularly create a backup
+
+
+
+Unofficial COMSTAR Backup/Restore
+---------------------------------
+
+The COMSTAR details are stored with the SMF repository for the stmf service.
+Thus to take a backup it is possible to do the following:
+
+Backup
+~~~~~~
+# svccfg export -a svc:/system/stmf > /var/tmp/stmf.manifest.export
+
+
+Restore
+~~~~~~~
+Restoring is a simple matter of importing the saved manifest+config data and
+then restarting the svc:/system/stmf:default service:
+
+# svccfg import /var/tmp/stmf.manifest.export
+# svcadm restart svc:/system/stmf:default
+
+However, what if you don't have a backup of the svc:/system/stmf:default service
+manifest?
+
+
+
+
+Collector
+~~~~~~~~~
+If all official methods of COMSTAR configuration recovery have been exhausted,
+you are *STRONGLY* advised to log a call with Nexenta Support before going any
+further.
+Proceeding without a support ticket and Nexenta engineer, may result in further
+complications and irrevocable damage to the configuration.
+
+
+Assuming you didn't take a backup of the COMSTAR configuration using the nmc,
+or even from the expert mode/bash prompt, then you may still be able to rebuild
+the configuration *IF* you have a Collector bundle from the appliance.
+Naturally the more recent the Collector the better as any modifications made
+after the Collector was captured would not have been recorded anywhere.
+
+################################################################################
+
+NOTE:
+  The rebuild scripts do not automatically rebuild the COMSTAR configuration!
+  They merely output the underlying, expert mode commands that must be run
+  by the administrator in order to rebuild the configuration.
+
+  As things may go wrong or produce unexpected results, you are *STRONGLY*
+  encouraged to take the output from the scripts and run each section in turn
+  making a note of any errors or warnings and if required, addressing those.
+
+  In particular if you have been using CHAP authentication for any LUs then you
+  will be required to manually enter the password/secret phrase.
+  If you did not document/keep a record of CHAP users/keys, then rebuilding the
+  config with a new key, will require you to re-key your initiators.
+
+################################################################################
+
+
+
+In order to attempt a rebuild you will need:
+
+o) A copy of the scripts from the comstar-rebuild.tar.gz file
+o) A copy of the comstar directory from a recent Collector bundle
+
+Copy these to the appliance, eg:
+
+# mkdir /var/tmp/comstar-rebuild
+# cd /var/tmp/comstar-rebuild
+# wget <URL-for-comstar-rebuild.tar.gz>
+# tar zxvf comstar-rebuild.tar.gz
+
+Now copy the comstar directory from the Collector into this directory:
+
+# tar xvf /tmp/comstar.tar 
+comstar/
+comstar/echo-stmf_trace_bufs-mdb-k.stats
+comstar/itadm-list-tpg-v.out
+comstar/iscsiadm-list-isns-server-v.stats
+	...
+(truncated for brevity)
+
+
+Once done, run the comstar-rebuild.sh script ensuring you point it to the 
+comstar directory, from the Collector:
+
+# ./comstar-rebuild.sh comstar
+
+It will produce output of the following type:
+
+----------------------------------- EXAMPLE ------------------------------------
+### Creating lu's ...
+stmfadm create-lu -p guid=600144F0B9144D000000559E5F550001 -p alias=/dev/zvol/rdsk/clusterpool/hdvol -p blk=512 -p vid="NEXENTA " -p pid="COMSTAR         " -p wp=false -p wcd=false --size 536870912 /dev/zvol/rdsk/clusterpool/hdvol
+stmfadm create-lu -p guid=600144F0B9144D000000559E89E40002 -p alias=/dev/zvol/rdsk/clusterpool/movies -p blk=512 -p vid="NEXENTA " -p pid="COMSTAR         " -p wp=false -p wcd=false --size 536870912 /dev/zvol/rdsk/clusterpool/movies
+
+### Creating initiators ...
+itadm create-initiator iqn.1994-05.com.redhat:bcd44676a9e9
+
+### Creating targets ...
+itadm create-target  -a none  -l bunghole -n iqn.1986-03.com.sun:02:4b94077e-6159-e3b7-e8b4-bb2dc0c1a9cc
+itadm create-target  -a none  -l cluster_renderfarm -n iqn.1986-03.com.sun:02:ceda55be-0dd1-495c-be10-c08c2ed3f927
+itadm create-target  -a none  -l movies -n iqn.1986-03.com.sun:02:70a07be9-1df8-c0c2-8fb7-cfc7cb67776f
+
+### Creating host groups ...
+stmfadm create-hg felines
+stmfadm add-hg-member -g felines iqn.1994-05.com.redhat:bcd44676a9e9
+
+### Creating target groups ...
+stmfadm create-tg movie-people
+stmfadm offline-target iqn.1986-03.com.sun:02:70a07be9-1df8-c0c2-8fb7-cfc7cb67776f
+stmfadm add-tg-member -g movie-people iqn.1986-03.com.sun:02:70a07be9-1df8-c0c2-8fb7-cfc7cb67776f
+stmfadm online-target iqn.1986-03.com.sun:02:70a07be9-1df8-c0c2-8fb7-cfc7cb67776f
+
+stmfadm create-tg xfs
+stmfadm offline-target iqn.1986-03.com.sun:02:4b94077e-6159-e3b7-e8b4-bb2dc0c1a9cc
+stmfadm add-tg-member -g xfs iqn.1986-03.com.sun:02:4b94077e-6159-e3b7-e8b4-bb2dc0c1a9cc
+stmfadm online-target iqn.1986-03.com.sun:02:4b94077e-6159-e3b7-e8b4-bb2dc0c1a9cc
+
+stmfadm create-tg linux-users
+stmfadm offline-target iqn.1986-03.com.sun:02:ceda55be-0dd1-495c-be10-c08c2ed3f927
+stmfadm add-tg-member -g linux-users iqn.1986-03.com.sun:02:ceda55be-0dd1-495c-be10-c08c2ed3f927
+stmfadm online-target iqn.1986-03.com.sun:02:ceda55be-0dd1-495c-be10-c08c2ed3f927
+
+### Creating views ...
+stmfadm add-view -n 0 -t linux-users -h felines 600144F0B9144D000000559E5F550001
+stmfadm add-view -n 1 -t linux-users -h felines 600144F0B9144D000000559E89E40002
+----------------------------------- EXAMPLE ------------------------------------
+
+
+The output will *NOT* recreate any COMSTAR configuration, merely supply the 
+commands that must then be run at the bash prompt, in order to rebuild it.
+
+As documented above in the NOTE section you are *STRONGLY* encouraged to take
+the output from the scripts and run each section in turn making a note of any
+errors or warnings and if required, addressing those.
+
+If there are any errors that cannot be simply resolved (eg: typo, wrong name),
+then STOP!
+Consult the Nexenta engineer for further advise.
+
+
+
+Addendum
+--------
+The following scripts are supplied in the comstar-rebuild.sh
+
+o) comstar-rebuild.sh
+   - The main script that calls each sub-routine perl script in order
+
+o) create-initiator.pl
+   - The script to recreate the initiator configuration
+
+o) create-lu.pl
+   - The script to recreate the logical unit (LU) configuration
+
+o) target.pl
+   - The script to recreate the targets configuration
+
+o) hg.pl
+   - The script to recreate the host groups configuration
+
+o) tg.pl
+   - The script to recreate the target groups configuration
+
+o) views.pl
+   - The script to recreate the iSCSI views configuration
+
+If so required, you may run each sub-routine manually, eg:
+
+# ./create-lu.pl <data_filename>
+
+Should you not know which data file to supply to the script, running it
+without arguments will tell you, eg:
+
+# ./create-lu.pl
+Usage: create-lu.pl stmfadm-list-lu-v.out
+
