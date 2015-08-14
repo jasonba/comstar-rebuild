@@ -3,11 +3,12 @@
 #
 # Name		: target.pl
 # Author	: Jason Banham
-# Date		: 13th August 2015
+# Date		: 13th August 2015 / 14th August 2015
 # Usage		: target.pl itadm-list-target-v.out
 # Purpose	: Recreate the COMSTAR target settings from a saved Collector file
-# Version	: 0.01
+# Version	: 0.02
 # History	: 0.01 - Initial version
+#		  0.02 - Additional processing on IQN and AUTH to handle spacing and (defaults) after auth method
 #
 
 use strict;
@@ -29,11 +30,12 @@ my $index = 0;
 
 while ($index < $target_lines) {
     if ( $target_list[$index] =~ /iqn.+/ ) {
-	my ($target) = split / /, $target_list[$index];
+	my ($target) = split /\s+/, $target_list[$index];
 	$index++;
 	my ($tag, $alias) = split /:\s+/, $target_list[$index];
 	$index++;
 	my ($tag, $auth) = split /:\s+/, $target_list[$index];
+	my ($auth, $extra) = split /\s+/, $auth;
 	$index++;
 	my ($tag, $chapuser) = split /:\s+/, $target_list[$index];
 	$index++;
