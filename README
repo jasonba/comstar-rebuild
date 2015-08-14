@@ -148,6 +148,7 @@ In order to attempt a rebuild you will need:
 
 o) A copy of the scripts from the comstar-rebuild.tar.gz file
 o) A copy of the comstar directory from a recent Collector bundle
+o) A copy of the collector.stats file, located in the same directory as the comstar data
 
 Copy these to the appliance, eg:
 
