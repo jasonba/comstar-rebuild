@@ -21,6 +21,9 @@ if [ "x$1" == "x" ]; then
     exit 1
 fi
 
+#
+# For stupid shells that switch off xpg echo functionality, switch it back on
+#
 shopt -s xpg_echo
 
 PATH=$PATH:.
@@ -100,6 +103,10 @@ fi
 COLLECTOR_CHECK=0
 COLLECTOR_STATS="nf"	# Not Found
 
+#
+# In case we're given the path to a collector in the database, go up a directory to check for
+# the collector.stats file there
+#
 COLLECTOR_BASE="`dirname ${COMSTAR_DIR}`"
 if [ -r ${COLLECTOR_BASE}/collector.stats ]; then
     COLLECTOR_STATS=${COLLECTOR_BASE}/collector.stats
