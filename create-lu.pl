@@ -3,11 +3,12 @@
 #
 # Name		: create-lu.pl
 # Author	: Jason Banham
-# Date		: 13th August 2015
+# Date		: 13th August 2015 / 17th August 2015
 # Usage		: create-lu.pl stmfadm-list-lu-v.out
 # Purpose	: Recreate the COMSTAR lus from a saved Collector file
-# Version	: 0.01
+# Version	: 0.02
 # History	: 0.01 - Initial version
+#		  0.02 - Now handles aliases and the management url data that may contain spaces
 #
 
 use strict;
