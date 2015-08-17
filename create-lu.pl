@@ -34,7 +34,7 @@ while ($index < $lu_lines) {
 
 	$index += 3;
 	my ($tag, $alias) = split /:\s+/, $lu_list[$index];
-	$cmd = $cmd . " -p alias=" . $alias;
+	$cmd = $cmd . " -p alias=\"" . $alias . "\"";
 
 	$index += 2;
 	my ($tag, $datafile) = split /:\s+/, $lu_list[$index];
@@ -55,7 +55,7 @@ while ($index < $lu_lines) {
 	$index++;
 	my ($tag, $mgmturl) = split /:\s+/, $lu_list[$index];
 	if ( $mgmturl !~ /not set/ ) {
-	    $cmd = $cmd . " -p mgmt-url=" . $mgmturl;
+	    $cmd = $cmd . " -p mgmt-url=\"" . $mgmturl . "\"";
 	}
 	
 	$index++;

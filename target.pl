@@ -3,12 +3,15 @@
 #
 # Name		: target.pl
 # Author	: Jason Banham
-# Date		: 13th August 2015 / 14th August 2015
+# Date		: 13th August 2015 / 17th August 2015
 # Usage		: target.pl itadm-list-target-v.out
 # Purpose	: Recreate the COMSTAR target settings from a saved Collector file
-# Version	: 0.02
+# Version	: 0.05
 # History	: 0.01 - Initial version
 #		  0.02 - Additional processing on IQN and AUTH to handle spacing and (defaults) after auth method
+#	  	  0.03 - Now handles target portal tags
+#		  0.04 - Now handles aliases with a hyphen in their name
+#		  0.05 - Forgot to deal with chap username, now fixed.
 #
 
 use strict;
@@ -42,15 +45,24 @@ while ($index < $target_lines) {
 	my ($tag, $chapsecret) = split /:\s+/, $target_list[$index];
 	$index++;
 	my ($tag, $tpgtags) = split /:\s+/, $target_list[$index];
+
+        $tpgtags =~ s/ = [0-9]//g;
         my $cmd = "itadm create-target ";
         $cmd = $cmd . " -a " . $auth;
 
-	if ( $alias !~ /-/ ) {
-	    $cmd = $cmd . " -l " . $alias;
+	if ( $alias !~ /^-$/ ) {
+	    $cmd = $cmd . " -l \"" . $alias . "\"";
 	}
 	if ( $chapsecret !~ /unset/ ) {
 	    $cmd = $cmd . " -s";
 	}
+	if ( $chapuser !~ /^-$/ ) {
+	    $cmd = $cmd . " -u " . $chapuser;
+	}
+	if ( $tpgtags !~ /default/ ) {
+	    $cmd = $cmd . " -t " . $tpgtags;
+        }
+
 	$cmd = $cmd . " -n " . $target;
 
 	printf("%s\n", $cmd);

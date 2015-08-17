@@ -6,8 +6,9 @@
 # Date		: 13th August 2015
 # Usage		: tg.pl stmfadm-list-tg-v.out
 # Purpose	: Recreate the COMSTAR target group settings from a saved Collector file
-# Version	: 0.01
+# Version	: 0.02
 # History	: 0.01 - Initial version
+#		  0.02 - Now handles empty target groups and is smarter about offlining and onling the target
 #
 
 use strict;
@@ -32,14 +33,18 @@ while ($index < $targetgroup_lines) {
 	my ($tag, $tg_name) = split /: /, $targetgroup_list[$index];
 	printf("stmfadm create-tg %s\n", $tg_name);
 	$index++;
- 	while ( $targetgroup_list[$index] !~ /Target Group:.+/ && $index < $targetgroup_lines) {
-	    my ($member, $iqn) = split /: /, $targetgroup_list[$index];
-	    printf("stmfadm offline-target %s\n", $iqn);
-            printf("stmfadm add-tg-member -g %s %s\n", $tg_name, $iqn);
-	    printf("stmfadm online-target %s\n", $iqn);
-	    $index++;
+        my ($member, $iqn) = split /: /, $targetgroup_list[$index];
+        if ( $iqn ) {
+            printf("stmfadm offline-target %s\n", $iqn);
+     	    while ( $targetgroup_list[$index] !~ /Target Group:.+/ && $index < $targetgroup_lines) {
+                my ($member, $iqn) = split /: /, $targetgroup_list[$index];
+                printf("stmfadm add-tg-member -g %s %s\n", $tg_name, $iqn);
+#	        printf("stmfadm online-target %s\n", $iqn);
+	        $index++;
+            }
+            printf("stmfadm online-target %s\n", $iqn);
+	    $index--;
         }
-	$index--;
     }
     printf("\n");
     $index++;
