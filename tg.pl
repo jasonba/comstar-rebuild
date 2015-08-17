@@ -35,11 +35,10 @@ while ($index < $targetgroup_lines) {
 	$index++;
         my ($member, $iqn) = split /: /, $targetgroup_list[$index];
         if ( $iqn ) {
-            printf("stmfadm offline-target %s\n", $iqn);
+	    printf("stmfadm offline-target %s\n", $iqn);
      	    while ( $targetgroup_list[$index] !~ /Target Group:.+/ && $index < $targetgroup_lines) {
                 my ($member, $iqn) = split /: /, $targetgroup_list[$index];
                 printf("stmfadm add-tg-member -g %s %s\n", $tg_name, $iqn);
-#	        printf("stmfadm online-target %s\n", $iqn);
 	        $index++;
             }
             printf("stmfadm online-target %s\n", $iqn);
