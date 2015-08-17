@@ -6,12 +6,13 @@
 # Date		: 13th August 2015 / 17th August 2015
 # Usage		: target.pl itadm-list-target-v.out
 # Purpose	: Recreate the COMSTAR target settings from a saved Collector file
-# Version	: 0.05
+# Version	: 0.06
 # History	: 0.01 - Initial version
 #		  0.02 - Additional processing on IQN and AUTH to handle spacing and (defaults) after auth method
 #	  	  0.03 - Now handles target portal tags
 #		  0.04 - Now handles aliases with a hyphen in their name
 #		  0.05 - Forgot to deal with chap username, now fixed.
+#		  0.06 - Now handles target aliases with spaces in the name
 #
 
 use strict;
