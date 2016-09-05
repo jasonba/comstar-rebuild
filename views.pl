@@ -3,12 +3,15 @@
 #
 # Name		: views.pl
 # Author	: Jason Banham
-# Date		: 13th August 2015 / 17th August 2015
+# Date		: 13th August 2015 / 17th August 2015 / 1st September 2016
 # Usage		: views.pl for-lu-in-stmfadm-list-lucut-d-f3-do-echo-echo-luecho-stmfadm-list-view-l-lu-done.out
 # Purpose	: Recreate the COMSTAR views from a saved Collector file
-# Version	: 0.02
+# Version	: 0.03
 # History	: 0.01 - Initial version
 #		  0.02 - Added in checks for 'All' host group and target groups
+#                 0.03 - Reworked the code to factor in an LU with multiple view entries as previous
+#                        logic was very naive with respect to the format of the input file.
+#                        (Thanks to Misha for finding the data file that caused the old logic to trip over)
 #
 
 use strict;
@@ -20,7 +23,7 @@ if ( $num_args < 1 ) {
     exit;
 }
 
-open (my $file, "<", $ARGV[0]) || die "Can't read file : $!";
+open (my $file, "<", $ARGV[0]) || die "Can't read file: $ARGV[0]";
 my (@view_list) = <$file>;
 close($file);
 
@@ -29,29 +32,37 @@ my ($view_lines) = scalar @view_list;
 my $index = 0;
 my $cmd = "";
 
+$index = 1;     # First line is always blank
+
 while ($index < $view_lines) {
     $cmd = "stmfadm add-view";
-    $index++;		# First line is always blank
-    my $lu = $view_list[$index];
+    if ($view_list[$index] =~ /^[0-6]*/) { 
+        my $lu = $view_list[$index];
+        $index ++;
 
-    $index += 3;	# Skip over the next blank line and the view entry
+        while ($view_list[$index] !~ /^[0-6]/ && $index < $view_lines) {
+            if ($view_list[$index] =~ /Host group/) {
+                $cmd = "stmfadm add-view";
+                my ($tag, $hg) = split /: /, $view_list[$index];
+                if ($hg !~ /All/ ) {
+	            $cmd = $cmd . " -h " . $hg;
+                }
+            }
 
-    my ($tag, $hg) = split /: /, $view_list[$index];
-    if ($hg !~ /All/ ) {
-	$cmd = $cmd . " -h " . $hg;
-    }
-    $index++;
+            if ($view_list[$index] =~ /Target group/) {
+                my ($tag, $tg) = split /: /, $view_list[$index];
+                if ($tg !~ /All/ ) {
+	            $cmd = $cmd . " -t " . $tg;
+                }
+            }
 
-    my ($tag, $tg) = split /: /, $view_list[$index];
-    if ($tg !~ /All/ ) {
-	$cmd = $cmd . " -t " . $tg;
-    }
-    $index++;
-
-    my ($tag, $lun) = split /: /, $view_list[$index];
-    $cmd = $cmd . " -n " . $lun . " " . $lu;
+            if ($view_list[$index] =~ /LUN/) {
+                my ($tag, $lun) = split /: /, $view_list[$index];
+                $cmd = $cmd . " -n " . $lun . " " . $lu;
+                printf("%s\n", $cmd);
+            }
   
-    printf("%s\n", $cmd);
- 
-    $index++;
+            $index++;
+        }
+    }
 }
