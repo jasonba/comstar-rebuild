@@ -2,7 +2,8 @@ README file for the COMSTAR rebuild scripts
 ===========================================
 
 This package contains a number of scripts that may aid in the rebuilding of
-a COMSTAR configuration in the event of a catastrophic configuration failure.
+a COMSTAR configuration from a NexentaStor appliance, in the event of a 
+catastrophic configuration failure.
 
 ###
 ### DISCLAIMER
@@ -15,7 +16,7 @@ a COMSTAR configuration in the event of a catastrophic configuration failure.
 ### As the owner/maintainer of the appliance, it is your responsibility to
 ### keep known good backups of critical system configuration details.
 ### If all else has failed, these scripts may be able to assist on a best
-### efforts basis, assuming a recent Collector bundle is available.
+### efforts basis, assuming a recent Collector or Support bundle is available.
 ###
 
 
@@ -26,7 +27,7 @@ o) Introduction
 o) Official backup/restore
 o) Unofficial backup/restore
   - SMF stmf manifest
-  - Collector
+  - Collector/Support Bundle
 o) Addendum
 
 
@@ -38,6 +39,7 @@ There are several steps involved in configuring a COMSTAR setup, typically:
 o) Setting up the initiator
 o) Providing some block level storage (zvol or LUN)
 o) Mapping this to logical unit, possibly with a pretermined GUID
+o) Optionally configuring the target portal groups
 o) Optionally setting up a host group and target group
 o) Managing an iSCSI view so the LU can be seen by the initiators
 
@@ -109,8 +111,8 @@ manifest?
 
 
 
-Collector
-~~~~~~~~~
+Collector/Support Bundle
+~~~~~~~~~~~~~~~~~~~~~~~~
 If all official methods of COMSTAR configuration recovery have been exhausted,
 you are *STRONGLY* advised to log a call with Nexenta Support before going any
 further.
@@ -120,9 +122,10 @@ complications and irrevocable damage to the configuration.
 
 Assuming you didn't take a backup of the COMSTAR configuration using the nmc,
 or even from the expert mode/bash prompt, then you may still be able to rebuild
-the configuration *IF* you have a Collector bundle from the appliance.
-Naturally the more recent the Collector the better as any modifications made
-after the Collector was captured would not have been recorded anywhere.
+the configuration *IF* you have a Collector/Support bundle from the appliance.
+Naturally the more recent the Collector/Support bundle the better as any 
+modifications made after the Collector was captured would not have been recorded 
+anywhere.
 
 ################################################################################
 
@@ -147,8 +150,7 @@ NOTE:
 In order to attempt a rebuild you will need:
 
 o) A copy of the scripts from the comstar-rebuild.tar.gz file
-o) A copy of the comstar directory from a recent Collector bundle
-o) A copy of the collector.stats file, located in the same directory as the comstar data
+o) A Collector or Support bundle
 
 Copy these to the appliance, eg:
 
@@ -157,9 +159,10 @@ Copy these to the appliance, eg:
 # wget <URL-for-comstar-rebuild.tar.gz>
 # tar zxvf comstar-rebuild.tar.gz
 
-Now copy the comstar directory from the Collector into this directory:
+Now extract the collector or support bundle, ensuring we have the comstar directory.
 
-# tar xvf /tmp/comstar.tar 
+# tar xvf collector.tar.gz
+...
 comstar/
 comstar/echo-stmf_trace_bufs-mdb-k.stats
 comstar/itadm-list-tpg-v.out
@@ -168,10 +171,54 @@ comstar/iscsiadm-list-isns-server-v.stats
 (truncated for brevity)
 
 
-Once done, run the comstar-rebuild.sh script ensuring you point it to the 
-comstar directory, from the Collector:
+Usage
+-----
+Usage: comstar-rebuild.sh [-h] [-C] [-c <collector_location>/comstar ] [ -b <support_bundle_location>/comstar ] [ -i <initiator_chap_secret> ] [ -t <target_chap_secret> [-v]
 
-# ./comstar-rebuild.sh comstar
+
+Once done, run the comstar-rebuild.sh script ensuring you point it to the 
+comstar directory.
+Owing to some naming convention differences, you'll need to say whether you're
+using a collector (use the -c switch) or a bundle (use the -b switch), eg:
+
+Collector
+---------
+# ./comstar-rebuild.sh -c machine_name/comstar
+
+
+Support Bundle
+--------------
+# ./comstar-rebuild.sh -b bundle_name/collector/comstar
+
+
+Cluster Support
+---------------
+If you're rebuilding the COMSTAR configuration for a clustered system, you
+should specify the -C switch, which will tell the scripts to use 'stmfha'
+to build the configuration, ensuring this is replicated between cluster
+nodes.
+
+For example:
+
+Collector
+---------
+# ./comstar-rebuild.sh -C -c collector_name/comstar
+
+
+CHAP Secrets
+------------
+The COMSTAR configuration may use a CHAP secret for both initiator and target.
+You can specify these using the -i <initiator_secret> and -t <target_secret>
+switches.
+
+For example:
+
+# ./comstar-rebuild.sh -i darmok -t jalad -c collector_name/comstar
+
+
+
+Example Output
+--------------
 
 It will produce output of the following type:
 
@@ -230,6 +277,13 @@ Consult the Nexenta engineer for further advise.
 Addendum
 --------
 The following scripts are supplied in the comstar-rebuild.sh
+Ideally the comstar-rebuild.sh script will run each module in turn, supplying the
+output that then needs to be run manually and this will happen without errors.
+
+However if an error does occur it is possible to run each module/perl script 
+individually so that the output can be examined for possible parsing errors of
+the comstar data, which can then be addressed.
+
 
 o) comstar-rebuild.sh
    - The main script that calls each sub-routine perl script in order
@@ -239,6 +293,9 @@ o) create-initiator.pl
 
 o) create-lu.pl
    - The script to recreate the logical unit (LU) configuration
+
+o) tpg.pl
+   - Creates the target portal group configuration
 
 o) target.pl
    - The script to recreate the targets configuration

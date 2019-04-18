@@ -3,14 +3,19 @@
 #
 # Name		: tpg.pl
 # Author	: Jason Banham
-# Date		: 17th August 2015
+# Date		: 17th August 2015 | 22nd March 2019
 # Usage		: tpg.pl itadm-list-tpg-v.out
 # Purpose	: Recreate the COMSTAR target portal group settings from a saved Collector file
-# Version	: 0.01
+# Version	: 0.02
 # History	: 0.01 - Initial version
+#                 0.02 - Cluster switch code added
 #
 
 use strict;
+use Getopt::Std;
+
+my $cluster;
+my $cmd = "itadm";
 
 my $num_args = $#ARGV + 1;
 
@@ -19,7 +24,15 @@ if ( $num_args < 1 ) {
     exit;
 }
 
-open (my $file, "<", $ARGV[0]) || die "Can't read file comstar target portal group file: $!";
+# declare the perl command line flags/options we want to allow
+my %options=();
+getopts("c", \%options);
+
+if (defined $options{c}) {
+    $cmd = "stmfha";
+}
+
+open (my $file, "<", $ARGV[0]) || die "Can't read file: $ARGV[0]";
 my (@tpg_list) = <$file>;
 close($file);
 
@@ -33,7 +46,8 @@ while ($index < $tpg_lines) {
 	$index++;
     }
     my ($tpg_name, $portal_count) = split /\s+/, $tpg_list[$index];
-    my $cmd = "itadm create-tpg " . $tpg_name . " ";
+#    my $cmd = "itadm create-tpg " . $tpg_name . " ";
+    my $cmd = $cmd . " create-tpg " . $tpg_name . " ";
     $index++;
     my ($tag, $portal) = split /:\s+/, $tpg_list[$index];
     $portal =~ s/,/ /g;
